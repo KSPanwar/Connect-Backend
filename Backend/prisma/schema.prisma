@@ -1,0 +1,49 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  user_id      Int      @id @default(autoincrement()) // Equivalent to SERIAL PRIMARY KEY
+  email        String   @unique                      // Unique and non-null
+  password_hash String                              // Password hash (nullable)
+  userName         String   @unique                           // Name (nullable)
+  created_at   DateTime @default(now())              // Default current timestamp
+  oauthAccounts UserOAuthAccount[]                  // Relation to UserOAuthAccount (one-to-many)
+}
+
+// OAuth providers table
+model OAuthProvider {
+  provider_id   Int      @id @default(autoincrement()) // Equivalent to SERIAL PRIMARY KEY
+  provider_name String   @unique                      // Unique and non-null
+  auth_url      String?                               // OAuth authorization URL (nullable)
+  token_url     String?                               // OAuth token URL (nullable)
+  api_base_url  String?                               // API base URL (nullable)
+  oauthAccounts UserOAuthAccount[]                    // Relation to UserOAuthAccount (one-to-many)
+}
+
+// User OAuth accounts table (junction table)
+model UserOAuthAccount {
+  account_id       Int       @id @default(autoincrement()) // Equivalent to SERIAL PRIMARY KEY
+  user             User      @relation(fields: [user_id], references: [user_id])
+  user_id          Int                                        // Foreign key to User
+  provider         OAuthProvider @relation(fields: [provider_id], references: [provider_id])
+  provider_id      Int                                        // Foreign key to OAuthProvider
+  access_token     String                                     // Access token, non-null
+  refresh_token    String?                                    // Refresh token, nullable
+  token_expires_at DateTime?                                  // Token expiration, nullable
+  created_at       DateTime  @default(now())                  // Default current timestamp
+  updated_at       DateTime  @updatedAt                       // Automatically update timestamp when record changes
+  
+  @@unique([user_id, provider_id])                            // Unique combination of user and provider
+}
